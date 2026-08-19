@@ -50,16 +50,20 @@ hypr_available() {
 }
 
 hypr_value() {
-  local opt="$1" raw custom intv
+  local opt="$1" raw
   raw="$(hyprctl getoption "$opt" -j 2>/dev/null || echo "")"
   [[ -n "$raw" ]] || { echo ""; return; }
-  custom="$(jq -r '.custom // empty' <<<"$raw" 2>/dev/null || true)"
-  if [[ -n "$custom" && "$custom" != "null" ]]; then
-    echo "$custom"
-    return
-  fi
-  intv="$(jq -r '.int // empty' <<<"$raw" 2>/dev/null || true)"
-  echo "$intv"
+  # Current hyprctl JSON uses bool/css/int. Older builds used custom/int only.
+  jq -r '
+    if has("bool") then (if .bool then "1" else "0" end)
+    elif .int != null then (.int | tostring)
+    elif .float != null then (.float | tostring)
+    elif (.css // "") != "" then .css
+    elif (.custom // "") != "" and .custom != "null" then .custom
+    elif (.str // "") != "" then .str
+    else empty
+    end
+  ' <<<"$raw" 2>/dev/null || true
 }
 
 hypr_set() {
@@ -79,11 +83,18 @@ set_power_profile() {
 }
 
 set_bar_hidden() {
+  # `omarchy toggle bar on` means "turn bar-off on" — it HIDES the bar.
+  # Always drive the bar-off flag explicitly, then poke the toggles
+  # directory so the shell FileView re-probes. Deleting the flag alone
+  # can leave the running shell parked off-screen.
+  local toggles="$HOME/.local/state/omarchy/toggles"
+  mkdir -p "$toggles"
   if [[ "$1" == "true" ]]; then
     omarchy-toggle bar-off on
   else
     omarchy-toggle bar-off off
   fi
+  touch "$toggles"
 }
 
 set_dnd() {
@@ -185,7 +196,6 @@ snapshot() {
 }
 
 apply_gaming() {
-  set_bar_hidden true
   set_dnd on
   set_nightlight false
   set_stay_awake true
@@ -205,7 +215,7 @@ apply_gaming() {
 
 restore_desktop() {
   [[ -f "$RESTORE" ]] || return 0
-  local json
+  local json animations
   json="$(cat "$RESTORE")"
 
   set_bar_hidden "$(jq -r '.barHidden // false' <<<"$json")"
@@ -219,13 +229,18 @@ restore_desktop() {
   set_power_profile "$(jq -r '.power // empty' <<<"$json")"
 
   if hypr_available; then
-    hypr_set animations:enabled "$(jq -r '.hypr.animations // empty' <<<"$json")"
-    hypr_set decoration:blur:enabled "$(jq -r '.hypr.blur // empty' <<<"$json")"
-    hypr_set decoration:shadow:enabled "$(jq -r '.hypr.shadow // empty' <<<"$json")"
-    hypr_set general:gaps_in "$(jq -r '.hypr.gaps_in // empty' <<<"$json")"
-    hypr_set general:gaps_out "$(jq -r '.hypr.gaps_out // empty' <<<"$json")"
-    hypr_set general:border_size "$(jq -r '.hypr.border // empty' <<<"$json")"
-    hypr_set decoration:rounding "$(jq -r '.hypr.rounding // empty' <<<"$json")"
+    animations="$(jq -r '.hypr.animations // empty' <<<"$json")"
+    if [[ -z "$animations" && -z "$(jq -r '.hypr.gaps_in // empty' <<<"$json")" ]]; then
+      hyprctl reload >/dev/null 2>&1 || true
+    else
+      hypr_set animations:enabled "$animations"
+      hypr_set decoration:blur:enabled "$(jq -r '.hypr.blur // empty' <<<"$json")"
+      hypr_set decoration:shadow:enabled "$(jq -r '.hypr.shadow // empty' <<<"$json")"
+      hypr_set general:gaps_in "$(jq -r '.hypr.gaps_in // empty' <<<"$json")"
+      hypr_set general:gaps_out "$(jq -r '.hypr.gaps_out // empty' <<<"$json")"
+      hypr_set general:border_size "$(jq -r '.hypr.border // empty' <<<"$json")"
+      hypr_set decoration:rounding "$(jq -r '.hypr.rounding // empty' <<<"$json")"
+    fi
   fi
 
   rm -f "$RESTORE"
@@ -255,7 +270,7 @@ cmd_enter() {
     notify "ON — launching Steam"
     cmd_launch_steam_session
   else
-    notify "ON — bar hidden, desktop optimized"
+    notify "ON — desktop optimized"
   fi
 }
 
@@ -270,11 +285,13 @@ cmd_launch_steam_session() {
 }
 
 cmd_exit() {
-  if [[ ! -f "$ACTIVE_FLAG" && ! -f "$RESTORE" ]]; then
-    return 0
+  if [[ -f "$RESTORE" ]]; then
+    restore_desktop
+  else
+    # No snapshot (already exited, or enter failed mid-way): still unhide the bar.
+    set_bar_hidden false
   fi
-  restore_desktop
-  rm -f "$ACTIVE_FLAG"
+  rm -f "$ACTIVE_FLAG" "$RESTORE"
   notify "OFF — desktop restored"
 }
 

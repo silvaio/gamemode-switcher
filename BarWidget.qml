@@ -153,6 +153,7 @@ BarWidget {
     function toggle(): void { root.toggle() }
     function enter(): void { root.enterGameMode() }
     function exit(): void { root.exitGameMode() }
+    function toggleMode(): void { root.setGameMode(!root.gameModeActive) }
   }
 
   BarIconButton {

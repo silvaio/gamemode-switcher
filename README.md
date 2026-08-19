@@ -2,11 +2,12 @@
 
 One-click **Game Mode** for Omarchy Quattro.
 
-- Hide the bar (`omarchy toggle bar`, same flag as `Super + Shift + Space`)
 - Do-not-disturb, stay-awake, night light off, performance power profile
 - Disable Hyprland animations, blur, shadows, and gaps — then restore the previous values on exit
 - Optional: launch Steam in Gamescope (or Big Picture if Gamescope is missing). Quitting Steam restores the desktop
 - Quick-launch only the game clients you actually have installed
+
+The bar stays. The gamepad chip is how you leave.
 
 ## Install
 
@@ -25,11 +26,14 @@ omarchy plugin enable silvaio.gamemode --section right
 
 ## Usage
 
-- Click the gamepad chip in the bar
-- Enter / Exit Game Mode with the switch or the button
-- Enable **Steam in Gamescope** in the panel (or in widget settings) if you want Enter to start a Steam Deck-style session
+- Click the gamepad chip
+- Flip the switch to enter or leave
 
-When the bar is hidden, `Super + Shift + Space` shows it again so you can exit.
+Optional keybind:
+
+```lua
+o.bind("SUPER + CTRL + G", "Game Mode", "omarchy-shell silvaio.gamemode toggleMode")
+```
 
 ## Settings
 
@@ -41,7 +45,18 @@ When the bar is hidden, `Super + Shift + Space` shows it again so you can exit.
 omarchy bar set silvaio.gamemode steamGamescope true
 ```
 
+## Dependencies
+
+Ships with Omarchy: `hyprctl`, `jq`, `notify-send`, and usually `powerprofilesctl`.
+
+Optional, only if you enable the Gamescope session:
+
+- Steam (`steam` or the Steam desktop entry)
+- Gamescope (`gamescope`) — without it, Game Mode falls back to Steam Big Picture
+
 ## Remove
+
+Exit Game Mode first so notifications, idle, power profile, and Hyprland settings are restored. Then:
 
 ```sh
 omarchy plugin remove silvaio.gamemode

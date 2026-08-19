@@ -6,7 +6,7 @@
   "author": "silvaio",
   "license": "MIT",
   "homepage": "https://github.com/silvaio/gamemode-switcher",
-  "description": "One-click Game Mode for Omarchy: hide the bar, optimize Hyprland, and optionally launch Steam in Gamescope / Big Picture.",
+  "description": "One-click Game Mode for Omarchy: optimize Hyprland, silence the desktop, and optionally launch Steam in Gamescope / Big Picture.",
   "kinds": ["bar-widget"],
   "entryPoints": {
     "barWidget": "BarWidget.qml"

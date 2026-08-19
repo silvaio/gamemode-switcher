@@ -72,10 +72,10 @@ Panel {
 
   readonly property string steamDescription: {
     if (root.gamescopeInstalled && root.steamInstalled)
-      return "Enter Game Mode starts a fullscreen Gamescope session with Steam's Deck UI. Quitting Steam restores the desktop."
+      return "Enter starts Steam's Deck UI. Quit Steam to restore the desktop."
     if (root.steamInstalled)
-      return "Enter Game Mode launches Steam Big Picture. Install Gamescope for a nested session. Quitting Steam restores the desktop."
-    return "Install Steam from Omarchy → Install → Gaming, optionally with Gamescope. Quitting Steam restores the desktop."
+      return "Enter starts Steam Big Picture. Quit Steam to restore the desktop."
+    return "Install Steam from Omarchy → Gaming. Quit Steam to restore the desktop."
   }
 
   KeyboardPanel {
@@ -85,7 +85,7 @@ Panel {
     bar: root.bar
     open: root.opened
     focusTarget: keyCatcher
-    contentWidth: panel.fittedContentWidth(Style.space(320))
+    contentWidth: panel.fittedContentWidth(Style.space(480))
     contentHeight: panel.fittedContentHeight(content.implicitHeight)
 
     PanelKeyCatcher {
@@ -96,17 +96,18 @@ Panel {
 
       Column {
         id: content
-        width: parent.width
-        spacing: Style.space(12)
-        padding: Style.space(16)
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: parent.top
+        spacing: Style.space(14)
 
         PanelHero {
           width: parent.width
           title: "Game Mode"
-          meta: root.gameModeActive ? "Desktop optimized for play" : "One click to a clean gaming session"
-          detail: root.gameModeActive ? "ON" : "OFF"
+          meta: root.gameModeActive ? "Optimized for play" : "Clean gaming session"
           foreground: root.foreground
           fontFamily: root.fontFamily
+          iconOpacity: root.gameModeActive ? 1.0 : 0.7
           iconComponent: Component {
             Text {
               text: "󰊴"
@@ -125,26 +126,62 @@ Panel {
           }
         }
 
-        Button {
+        PanelSeparator { foreground: root.foreground }
+
+        Column {
           width: parent.width
-          text: root.gameModeActive ? "Exit Game Mode" : "Enter Game Mode"
-          foreground: root.foreground
-          fontFamily: root.fontFamily
-          bordered: true
-          onClicked: root.setGameMode(!root.gameModeActive)
+          spacing: Style.space(10)
+
+          PanelSectionHeader {
+            text: "SESSION"
+            foreground: root.foreground
+            fontFamily: root.fontFamily
+          }
+
+          Row {
+            width: parent.width
+            spacing: Style.space(20)
+
+            Column {
+              width: (parent.width - parent.spacing) / 2
+              spacing: Style.spacing.labelGap
+              InfoPair { label: "Notifications"; value: "Silent" }
+              InfoPair { label: "Sleep"; value: "Stay awake" }
+              InfoPair { label: "Night light"; value: "Off" }
+            }
+
+            Column {
+              width: (parent.width - parent.spacing) / 2
+              spacing: Style.spacing.labelGap
+              InfoPair { label: "Power"; value: "Performance" }
+              InfoPair { label: "Animations"; value: "Off" }
+              InfoPair { label: "Gaps"; value: "Off" }
+            }
+          }
         }
 
         PanelSeparator { foreground: root.foreground }
 
-        Toggle {
+        Column {
           width: parent.width
-          label: "Steam in Gamescope"
-          description: root.steamDescription
-          checked: root.steamGamescope
-          foreground: root.foreground
-          accent: Color.accent
-          fontFamily: root.fontFamily
-          onClicked: root.setSteamGamescope(!root.steamGamescope)
+          spacing: Style.space(10)
+
+          PanelSectionHeader {
+            text: "STEAM"
+            foreground: root.foreground
+            fontFamily: root.fontFamily
+          }
+
+          Toggle {
+            width: parent.width
+            label: "Gamescope session"
+            description: root.steamDescription
+            checked: root.steamGamescope
+            foreground: root.foreground
+            accent: Color.accent
+            fontFamily: root.fontFamily
+            onClicked: root.setSteamGamescope(!root.steamGamescope)
+          }
         }
 
         PanelSeparator {
@@ -152,43 +189,64 @@ Panel {
           foreground: root.foreground
         }
 
-        PanelSectionHeader {
-          visible: root.launchers.length > 0
-          text: "Quick Launch"
-          foreground: root.foreground
-          fontFamily: root.fontFamily
-        }
-
-        Flow {
+        Column {
           visible: root.launchers.length > 0
           width: parent.width
-          spacing: Style.space(8)
+          spacing: Style.space(10)
 
-          Repeater {
-            model: root.launchers
+          PanelSectionHeader {
+            text: "QUICK LAUNCH"
+            foreground: root.foreground
+            fontFamily: root.fontFamily
+          }
 
-            Button {
-              required property var modelData
-              text: modelData.name
-              foreground: root.foreground
-              fontFamily: root.fontFamily
-              bordered: true
-              onClicked: root.launch(modelData.id)
+          Flow {
+            width: parent.width
+            spacing: Style.space(8)
+
+            Repeater {
+              model: root.launchers
+
+              Button {
+                required property var modelData
+                text: modelData.name
+                foreground: root.foreground
+                fontFamily: root.fontFamily
+                bordered: true
+                onClicked: root.launch(modelData.id)
+              }
             }
           }
         }
-
-        Text {
-          width: parent.width
-          text: root.gameModeActive
-            ? "Bar is hidden. Super+Shift+Space shows it again, then exit Game Mode."
-            : "Hides the bar, silences notifications, stays awake, and drops Hyprland animations."
-          color: root.dim
-          font.family: root.fontFamily
-          font.pixelSize: Style.font.caption
-          wrapMode: Text.WordWrap
-        }
       }
+    }
+  }
+
+  component InfoPair: Row {
+    property string label: ""
+    property string value: ""
+
+    width: parent.width
+    spacing: Style.space(8)
+
+    Text {
+      text: label
+      color: root.foreground
+      opacity: 0.6
+      font.family: root.fontFamily
+      font.pixelSize: Style.font.bodySmall
+    }
+
+    Item {
+      width: Math.max(0, parent.width - parent.children[0].implicitWidth - parent.children[2].implicitWidth - parent.spacing * 2)
+      height: 1
+    }
+
+    Text {
+      text: value
+      color: root.foreground
+      font.family: root.fontFamily
+      font.pixelSize: Style.font.bodySmall
     }
   }
 }
