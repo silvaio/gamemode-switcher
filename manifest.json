@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "id": "silvaio.gamemode",
+  "name": "Game Mode Switcher",
+  "version": "1.1.0",
+  "author": "silvaio",
+  "license": "MIT",
+  "homepage": "https://github.com/silvaio/gamemode-switcher",
+  "description": "One-click Game Mode for Omarchy: hide the bar, optimize Hyprland, and optionally launch Steam in Gamescope / Big Picture.",
+  "kinds": ["bar-widget"],
+  "entryPoints": {
+    "barWidget": "BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "Game Mode",
+    "description": "Gamepad chip in the bar; click to enter or exit Game Mode",
+    "category": "System",
+    "allowMultiple": false,
+    "defaultSection": "right",
+    "defaults": {
+      "steamGamescope": false
+    },
+    "schema": [
+      {
+        "key": "steamGamescope",
+        "type": "boolean",
+        "label": "Launch Steam in Gamescope / Big Picture",
+        "description": "When entering Game Mode, start Steam's Deck UI (Gamescope if installed, otherwise Big Picture). Quitting Steam restores the desktop.",
+        "defaultValue": false
+      }
+    ]
+  }
+}
