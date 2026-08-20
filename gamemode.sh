@@ -160,6 +160,19 @@ wait_while_steam_client() {
   done
 }
 
+# Game Mode should also end when Big Picture is closed, not only when Steam exits.
+wait_while_steam_session() {
+  local seen_bp=false
+  while steam_client_running && [[ -f "$ACTIVE_FLAG" ]]; do
+    if steam_big_picture_present; then
+      seen_bp=true
+    elif $seen_bp; then
+      break
+    fi
+    sleep 0.5
+  done
+}
+
 window_address_by_class() {
   local class="$1"
   hyprctl clients -j 2>/dev/null | jq -r --arg class "$class" '
@@ -192,8 +205,9 @@ present_session_window() {
   if [[ -n "$dest_ws" ]]; then
     hyprctl dispatch "hl.dsp.window.move({ workspace = \"${dest_ws}\", window = \"address:${addr}\" })" >/dev/null 2>&1 || true
   fi
-  # Float + real fullscreen so a scrolling workspace cannot keep Steam as a column.
+  # Float + center first so leaving fullscreen does not dump the window at 0,0.
   hyprctl dispatch "hl.dsp.window.float({ action = \"on\", window = \"address:${addr}\" })" >/dev/null 2>&1 || true
+  hyprctl dispatch "hl.dsp.window.center({ window = \"address:${addr}\" })" >/dev/null 2>&1 || true
   hyprctl dispatch "hl.dsp.focus({ window = \"address:${addr}\" })" >/dev/null 2>&1 \
     || hyprctl dispatch focuswindow "address:${addr}" >/dev/null 2>&1 || true
   hyprctl dispatch "hl.dsp.window.fullscreen({ mode = \"fullscreen\", action = \"set\", layout_aware = false, window = \"address:${addr}\" })" >/dev/null 2>&1 || true
@@ -301,7 +315,7 @@ run_steam_session() {
       return 1
     fi
     bring_steam_to_front || true
-    wait_while_steam_client
+    wait_while_steam_session
     return 0
   fi
   notify "Steam is not installed. Install it from Omarchy → Install → Gaming → Steam."
@@ -457,8 +471,8 @@ restore_steam_desktop_window() {
   addr="$(steam_session_window_address)"
   [[ -n "$addr" ]] || return 0
   hyprctl dispatch "hl.dsp.window.fullscreen({ action = \"unset\", layout_aware = false, window = \"address:${addr}\" })" >/dev/null 2>&1 || true
-  hyprctl dispatch "hl.dsp.window.float({ action = \"off\", window = \"address:${addr}\" })" >/dev/null 2>&1 || true
-  have steam && steam steam://open/games >/dev/null 2>&1 || true
+  hyprctl dispatch "hl.dsp.window.float({ action = \"on\", window = \"address:${addr}\" })" >/dev/null 2>&1 || true
+  hyprctl dispatch "hl.dsp.window.center({ window = \"address:${addr}\" })" >/dev/null 2>&1 || true
 }
 
 cmd_exit() {

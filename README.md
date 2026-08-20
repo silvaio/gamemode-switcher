@@ -42,7 +42,7 @@ omarchy bar set silvaio.gamemode steamGamescope true
 
 ## Gamescope session
 
-When **Gamescope session** is on, entering Game Mode starts a Steam session and **keeps Game Mode on until Steam actually quits** (or you flip the switch off).
+When **Gamescope session** is on, entering Game Mode starts a Steam session and **keeps Game Mode on until Big Picture / Gamescope ends, Steam quits, or you flip the switch off**.
 
 | Gamescope installed? | Steam already running? | What happens |
 |---|---|---|
@@ -57,14 +57,14 @@ The Steam quick-launch button only focuses (and, if needed, moves) the existing 
 
 ### Leaving
 
-- **Quit Steam** from Big Picture / Gamescope — Game Mode restores the desktop
-- **Flip Game Mode off** — desktop settings are restored. Steam may stay in Big Picture until you use Steam's own Exit Big Picture / Switch to desktop
+- **Exit Big Picture / quit Steam / leave Gamescope** — Game Mode restores the desktop and centers the Steam window
+- **Flip Game Mode off** — same restore; Steam may still be in Big Picture until you use Steam's own Exit Big Picture / Switch to desktop
 
 ## Settings
 
 | Key | Default | Meaning |
 |---|---|---|
-| `steamGamescope` | `false` | Enter Game Mode launches a Steam Gamescope / Big Picture session. Quitting Steam exits Game Mode. |
+| `steamGamescope` | `false` | Enter Game Mode launches a Steam Gamescope / Big Picture session. Leaving that session exits Game Mode. |
 
 ## Dependencies
 
