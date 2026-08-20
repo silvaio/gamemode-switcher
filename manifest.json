@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "silvaio.gamemode",
   "name": "Game Mode Switcher",
-  "version": "1.1.3",
+  "version": "1.1.4",
   "author": "silvaio",
   "license": "MIT",
   "homepage": "https://github.com/silvaio/gamemode-switcher",
@@ -25,7 +25,7 @@
         "key": "steamGamescope",
         "type": "boolean",
         "label": "Launch Steam in Gamescope / Big Picture",
-        "description": "When entering Game Mode, start Steam's Deck UI in Gamescope, or Big Picture if Gamescope is missing. An already-running Steam is switched to Big Picture and fullscreened on the current workspace. Quitting Steam restores the desktop.",
+        "description": "When entering Game Mode, start Steam's Deck UI in Gamescope, or Big Picture if Gamescope is missing. Steam is fullscreened for the session, then returned to its previous workspace and layout. Leaving Big Picture or quitting Steam restores the desktop.",
         "defaultValue": false
       }
     ]

@@ -9,6 +9,7 @@ SELF="$(readlink -f "$0")"
 STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/omarchy/gamemode"
 ACTIVE_FLAG="$STATE_DIR/active"
 RESTORE="$STATE_DIR/restore.json"
+STEAM_WINDOW="$STATE_DIR/steam-window.json"
 
 mkdir -p "$STATE_DIR"
 
@@ -198,18 +199,44 @@ steam_big_picture_present() {
   ' >/dev/null 2>&1
 }
 
+snapshot_steam_window() {
+  hypr_available || return 0
+  local json
+  json="$(hyprctl clients -j 2>/dev/null | jq -c '
+    def ui: (.class // "") == "steam" and .mapped == true;
+    def bp: ((.title // "") | test("Big Picture|Gamepad UI|Steam Deck"; "i"));
+    ([.[] | select(ui and (bp | not))] + [.[] | select(ui)]
+     | sort_by(-((.size[0] // 0) * (.size[1] // 0)))
+     | .[0] // null)
+    | if . == null then empty else {
+        workspace: (.workspace.id | tostring),
+        floating: (.floating == true),
+        x: .at[0],
+        y: .at[1],
+        w: .size[0],
+        h: .size[1]
+      } end
+  ' 2>/dev/null || true)"
+  [[ -n "$json" ]] || return 0
+  printf '%s\n' "$json" >"$STEAM_WINDOW"
+}
+
 present_session_window() {
-  local addr="$1" dest_ws="${2:-}"
+  local addr="$1" dest_ws="${2:-}" cur_ws=""
   [[ -n "$addr" ]] || return 1
   hypr_available || return 1
   if [[ -n "$dest_ws" ]]; then
-    hyprctl dispatch "hl.dsp.window.move({ workspace = \"${dest_ws}\", window = \"address:${addr}\" })" >/dev/null 2>&1 || true
+    cur_ws="$(hyprctl clients -j 2>/dev/null | jq -r --arg addr "$addr" '
+      first(.[] | select(.address == $addr) | .workspace.id) // empty
+    ')"
+    if [[ "$cur_ws" != "$dest_ws" ]]; then
+      hyprctl dispatch "hl.dsp.window.move({ workspace = \"${dest_ws}\", window = \"address:${addr}\" })" >/dev/null 2>&1 || true
+    fi
   fi
-  # Float + center first so leaving fullscreen does not dump the window at 0,0.
-  hyprctl dispatch "hl.dsp.window.float({ action = \"on\", window = \"address:${addr}\" })" >/dev/null 2>&1 || true
-  hyprctl dispatch "hl.dsp.window.center({ window = \"address:${addr}\" })" >/dev/null 2>&1 || true
   hyprctl dispatch "hl.dsp.focus({ window = \"address:${addr}\" })" >/dev/null 2>&1 \
     || hyprctl dispatch focuswindow "address:${addr}" >/dev/null 2>&1 || true
+  # Fullscreen in place. Do not float — that throws Steam out of the layout and
+  # leaves a 1280x800 window at the corner when the session ends.
   hyprctl dispatch "hl.dsp.window.fullscreen({ mode = \"fullscreen\", action = \"set\", layout_aware = false, window = \"address:${addr}\" })" >/dev/null 2>&1 || true
 }
 
@@ -427,6 +454,7 @@ cmd_enter() {
       if hypr_available && [[ ! -s "$STATE_DIR/target-workspace" ]]; then
         hyprctl activeworkspace -j 2>/dev/null | jq -r '.id // empty' >"$STATE_DIR/target-workspace"
       fi
+      [[ -f "$STEAM_WINDOW" ]] || snapshot_steam_window
       cmd_launch_steam_session
     fi
     return 0
@@ -441,6 +469,7 @@ cmd_enter() {
     if hypr_available; then
       hyprctl activeworkspace -j 2>/dev/null | jq -r '.id // empty' >"$STATE_DIR/target-workspace"
     fi
+    snapshot_steam_window
     notify "ON — launching Steam"
     cmd_launch_steam_session
   else
@@ -466,13 +495,42 @@ cmd_wait_steam_session() {
 }
 
 restore_steam_desktop_window() {
-  local addr
+  local addr json ws floating x y w h
   hypr_available || return 0
   addr="$(steam_session_window_address)"
+  [[ -n "$addr" ]] || addr="$(window_address_by_class steam)"
   [[ -n "$addr" ]] || return 0
+
   hyprctl dispatch "hl.dsp.window.fullscreen({ action = \"unset\", layout_aware = false, window = \"address:${addr}\" })" >/dev/null 2>&1 || true
-  hyprctl dispatch "hl.dsp.window.float({ action = \"on\", window = \"address:${addr}\" })" >/dev/null 2>&1 || true
-  hyprctl dispatch "hl.dsp.window.center({ window = \"address:${addr}\" })" >/dev/null 2>&1 || true
+
+  if [[ ! -f "$STEAM_WINDOW" ]]; then
+    hyprctl dispatch "hl.dsp.window.float({ action = \"off\", window = \"address:${addr}\" })" >/dev/null 2>&1 || true
+    return 0
+  fi
+
+  json="$(cat "$STEAM_WINDOW")"
+  ws="$(jq -r '.workspace // empty' <<<"$json")"
+  floating="$(jq -r '.floating // false' <<<"$json")"
+  x="$(jq -r '.x // empty' <<<"$json")"
+  y="$(jq -r '.y // empty' <<<"$json")"
+  w="$(jq -r '.w // empty' <<<"$json")"
+  h="$(jq -r '.h // empty' <<<"$json")"
+
+  if [[ -n "$ws" ]]; then
+    hyprctl dispatch "hl.dsp.window.move({ workspace = \"${ws}\", follow = false, window = \"address:${addr}\" })" >/dev/null 2>&1 || true
+  fi
+
+  if [[ "$floating" == "true" ]]; then
+    hyprctl dispatch "hl.dsp.window.float({ action = \"on\", window = \"address:${addr}\" })" >/dev/null 2>&1 || true
+    if [[ -n "$x" && -n "$y" ]]; then
+      hyprctl dispatch "hl.dsp.window.move({ x = ${x}, y = ${y}, relative = false, window = \"address:${addr}\" })" >/dev/null 2>&1 || true
+    fi
+    if [[ -n "$w" && -n "$h" ]]; then
+      hyprctl dispatch "hl.dsp.window.resize({ x = ${w}, y = ${h}, relative = false, window = \"address:${addr}\" })" >/dev/null 2>&1 || true
+    fi
+  else
+    hyprctl dispatch "hl.dsp.window.float({ action = \"off\", window = \"address:${addr}\" })" >/dev/null 2>&1 || true
+  fi
 }
 
 cmd_exit() {
@@ -483,7 +541,7 @@ cmd_exit() {
     # No snapshot (already exited, or enter failed mid-way): still unhide the bar.
     set_bar_hidden false
   fi
-  rm -f "$ACTIVE_FLAG" "$RESTORE" "$STATE_DIR/session.id" "$STATE_DIR/target-workspace"
+  rm -f "$ACTIVE_FLAG" "$RESTORE" "$STEAM_WINDOW" "$STATE_DIR/session.id" "$STATE_DIR/target-workspace"
   notify "OFF — desktop restored"
 }
 

@@ -51,14 +51,14 @@ When **Gamescope session** is on, entering Game Mode starts a Steam session and 
 | No | No | Steam starts in gamepad / Big Picture UI |
 | No | Yes | The running client is sent to Big Picture (`steam://open/bigpicture`) |
 
-Without Gamescope, Big Picture is moved onto the workspace you were on and fullscreened. That still works on a busy workspace and with Omarchy's dwindle or scrolling layout (`SUPER + L`). Game Mode does not change the workspace layout itself.
+Without Gamescope, Big Picture is fullscreened on the workspace you were looking at. Game Mode does not change dwindle vs scrolling (`SUPER + L`). When the session ends, Steam goes back to the workspace and tile-or-float state it had before.
 
 The Steam quick-launch button only focuses (and, if needed, moves) the existing Steam window. It does not enter Big Picture.
 
 ### Leaving
 
-- **Exit Big Picture / quit Steam / leave Gamescope** — Game Mode restores the desktop and centers the Steam window
-- **Flip Game Mode off** — same restore; Steam may still be in Big Picture until you use Steam's own Exit Big Picture / Switch to desktop
+- **Exit Big Picture / quit Steam / leave Gamescope** — Game Mode restores the desktop, and Steam returns to where it was
+- **Flip Game Mode off** — same restore
 
 ## Settings
 
